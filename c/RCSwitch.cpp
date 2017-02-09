@@ -57,6 +57,10 @@ void RCSwitch::setProtocol(int nProtocol) {
   }
 }
 
+int RCSwitch::getTransmitPin(){
+  return this->nTransmitterPin;
+}
+
 /**
   * Sets the protocol to send with pulse length in microseconds.
   */

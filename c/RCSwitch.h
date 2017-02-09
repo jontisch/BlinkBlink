@@ -54,7 +54,7 @@ class RCSwitch {
     void setRepeatTransmit(int nRepeatTransmit);
     void setProtocol(int nProtocol);
     void setProtocol(int nProtocol, int nPulseLength);
-  
+    int getTransmitPin();
   private:
     char* getCodeWordB(int nGroupNumber, int nSwitchNumber, bool bStatus);
     char* getCodeWordA(char* sGroup, int nSwitchNumber, bool bStatus);
