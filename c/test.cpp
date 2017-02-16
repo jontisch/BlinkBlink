@@ -74,11 +74,10 @@ void MySocket::toggle(RCSwitch * rcSwitch){
                 default:
                     break;
             }
-            cout << "typ1 av\n";
+          
             //ABC dvs. custom-funktion
         }else if(_type == 2){
             rcSwitch->send(_seqoff, 24);
-            cout << "typ2 av\n";
         }
         
     }else{
@@ -96,10 +95,9 @@ void MySocket::toggle(RCSwitch * rcSwitch){
                 default:
                     break;
             }
-            cout << "typ1 på\n";
+        
         }else if(_type == 2){
             rcSwitch->send(_seqon, 24);
-            cout << "typ2 på\n";
         }
 
     }
@@ -133,6 +131,10 @@ void *connection_handler(void *socket_desc);
 //String conversion____________________________
 char* UTF8toISO8859_1(char * in);
 //---------------------------------------------
+//Print a tidy timestamp_______________________
+void printTimeStamp();
+//---------------------------------------------
+
 
 vector<MySocket> mySockets;
 RCSwitch mySwitch = RCSwitch();
@@ -197,8 +199,10 @@ int main(int argc, char* argv[]){
     socket_desc = socket(AF_INET , SOCK_STREAM , 0);
     if (socket_desc == -1)
     {
+        printTimeStamp();
         printf("Could not create socket");
     }
+    printTimeStamp();
     puts("Socket created");
 
     //Prepare the sockaddr_in structure
@@ -210,44 +214,49 @@ int main(int argc, char* argv[]){
     if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
     {
         //print the error message
+        printTimeStamp();
         perror("bind failed. Error");
         return 1;
     }
+    printTimeStamp();
     puts("bind done");
 
     //Listen
     listen(socket_desc , 3);
 
-    //Accept and incoming connection
-    puts("Waiting for incoming connections...");
-    c = sizeof(struct sockaddr_in);
-
-
-    //Accept and incoming connection
+     //Accept and incoming connection
+    printTimeStamp();
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
     while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
     {
+        printTimeStamp();
+        cout << "<" << inet_ntoa(client.sin_addr) << "> ";
         puts("Connection accepted");
 
         pthread_t sniffer_thread;
         int *new_sock = (int*) malloc(sizeof(int));
         *new_sock = client_sock;
-
+        printTimeStamp();
+        cout << "<" << inet_ntoa(client.sin_addr) << "> ";
         if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
         {
+            printTimeStamp();
             perror("could not create thread");
             return 1;
         }
 
         //Now join the thread , so that we dont terminate before the thread
         pthread_join( sniffer_thread , NULL);
+        printTimeStamp();
+        cout << "<" << inet_ntoa(client.sin_addr) << "> ";
         puts("Handler assigned");
         pthread_kill( sniffer_thread, 0);
     }
 
     if (client_sock < 0)
     {
+        printTimeStamp();
         perror("accept failed");
         return 1;
     }
@@ -264,7 +273,7 @@ void *connection_handler(void *socket_desc)
     int sock = *(int*)socket_desc;
     int read_size;
     char* message , client_message[2000];
-    const time_t rawtime = time(0);
+    //const time_t rawtime = time(0);
     //Send some messages to the client
     //message = "Greetings! I am your connection handler\n";
     //write(sock , message , strlen(message));
@@ -275,11 +284,13 @@ void *connection_handler(void *socket_desc)
     //Receive a message from client
     while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
     {
-        char timeBuffer[30];
+        //char timeBuffer[30];
         
 
-        strftime(timeBuffer, sizeof(timeBuffer), "%d-%m-%Y %H:%M:%S", localtime(&rawtime));
-        cout << timeBuffer << "\n" << client_message << "\n";
+        //strftime(timeBuffer, sizeof(timeBuffer), "%d-%m-%Y %H:%M:%S", localtime(&rawtime));
+        //cout << timeBuffer << "\n" << client_message << "\n";
+        
+        cout << client_message << "\n";
         if(client_message[0] == 'q'){
             stringstream ss;
             ss << "{";
@@ -331,11 +342,13 @@ void *connection_handler(void *socket_desc)
     else if(read_size == -1)
     {
         perror("recv failed");
+
     }
 
     //Free the socket pointer
+    close(sock);
     free(socket_desc);
-    cout << "Time spent: " << time(0) - rawtime << "\n";
+    //cout << "Time spent: " << time(0) - rawtime << "\n";
     return 0;
 }
 
@@ -373,4 +386,11 @@ char* UTF8toISO8859_1(char * in)
         }
     }
     return strdup(out.c_str());
+}
+
+void printTimeStamp(){
+    const time_t rawtime = time(0);
+    char timeBuffer[30];
+    strftime(timeBuffer, sizeof(timeBuffer), "%d-%m-%Y %H:%M:%S", localtime(&rawtime));
+    cout << "[" << timeBuffer << "]";
 }
